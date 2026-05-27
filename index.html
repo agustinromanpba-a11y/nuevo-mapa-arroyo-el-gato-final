@@ -1,0 +1,2139 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="data/cuencas_2.js"></script>
+        <script src="data/peligrosidad_el_gato_3.js"></script>
+        <script src="data/ARROYO_4.js"></script>
+        <script src="data/MAPEOARROYOELGATOFIGURAENBIZAGI_5.js"></script>
+        <script src="data/MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6.js"></script>
+        <script src="data/MAPEOV1ubicacionCAT_7.js"></script>
+        <script src="data/MAPEOV1PR_8.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-35.068063449207926,-58.113623242663635],[-34.883709576447025,-57.78334925436686]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_ESRISatellite_0');
+        map.getPane('pane_ESRISatellite_0').style.zIndex = 400;
+        var layer_ESRISatellite_0 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            pane: 'pane_ESRISatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_ESRISatellite_0;
+        map.addLayer(layer_ESRISatellite_0);
+        map.createPane('pane_OpenStreetMap_1');
+        map.getPane('pane_OpenStreetMap_1').style.zIndex = 401;
+        var layer_OpenStreetMap_1 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_1',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_1;
+        map.addLayer(layer_OpenStreetMap_1);
+        function pop_cuencas_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['gid'] !== null ? autolinker.link(String(feature.properties['gid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cuenca'] !== null ? autolinker.link(String(feature.properties['cuenca']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['subcuenca'] !== null ? autolinker.link(String(feature.properties['subcuenca']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['sistema'] !== null ? autolinker.link(String(feature.properties['sistema']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['vertiente'] !== null ? autolinker.link(String(feature.properties['vertiente']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['area_km2'] !== null ? autolinker.link(String(feature.properties['area_km2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['km'] !== null ? autolinker.link(String(feature.properties['km']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fuente'] !== null ? autolinker.link(String(feature.properties['fuente']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(String(feature.properties['Shape_Leng']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(String(feature.properties['Shape_Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_cuencas_2_0(feature) {
+            switch(String(feature.properties['cuenca'])) {
+                default:
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(118,210,65,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Aporte al Salitral Grande':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(220,41,77,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE APORTE DIRECTO AL OCEANO ATLANTICO SUR':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(53,182,41,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE APORTE DIRECTO AL RIO DE LA PLATA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(222,90,78,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE APORTE DIRECTO AL RIO PARANA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(179,219,126,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE ARROYO LAS FLORES':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(211,93,219,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE DESAGUE DIRECTO AL RIO DE LA PLATA AL N DEL RIO SAMBOROMBON':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(223,94,107,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca de la laguna La Picasa':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(86,210,175,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE LA LAGUNA MAR CHIQUITA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(76,114,239,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE LOS ARROYOS EL MALACARA, CHOCORI Y OTROS':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(22,167,224,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE LOS ARROYOS EL PERDIDO, EL ZANJON Y LOS GAUCHOS':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(108,162,238,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE LOS ARROYOS ESPINILLO Y DE LOS CUEROS':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(97,54,227,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DE LOS ARROYOS LAS CORTADERAS, CRISTIANO MUERTO Y OTROS':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(41,46,203,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO AZUL':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(157,88,240,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO CHASICO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(219,110,67,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO COCHICO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(50,227,71,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO DE LA CRUZ':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(60,228,127,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca del Arroyo del Medio':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(212,21,151,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO DEL MEDIO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(220,49,200,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO DEL TALA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(235,154,47,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO GUAMINI':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(203,100,77,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO LANGUEYU':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(93,240,225,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO NAPOSTA CHICO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(64,157,215,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO PERGAMINO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(203,188,89,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO PIGgE':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(80,215,190,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO RAMALLO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(216,170,79,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO SAUCE CHICO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(134,19,229,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO SAUCE CORTO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(64,82,205,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO SAUCE GRANDE':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(215,102,191,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO TANDILEUFU-CHELFORO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(92,213,227,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO TRES ARROYOS O CLAROMECO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(228,171,117,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO VALLIMANCA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(69,138,202,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL ARROYO VENADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(207,58,202,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO ARECO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(93,18,231,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO ARRECIFES':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(134,128,220,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO COLORADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(134,112,239,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO DE LA MATANZA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(205,39,136,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO DE LA RECONQUISTA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(64,211,137,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO LUJAN':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(27,210,30,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO NEGRO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(201,59,102,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO QUEQUEN GRANDE':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(98,234,141,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO QUEQUEN SALADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(160,213,61,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO SALTO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(196,235,78,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA DEL RIO SAMBOROMBON':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(225,64,128,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca del rno Arrecifes':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(69,206,240,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca del rno Negro':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(32,239,77,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca del rno Salado brazo norte':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(47,234,30,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca del rno Salado brazo sur':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(77,230,47,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'CUENCA PROPIA DEL RIO SALADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(175,35,203,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cuenca propia del rRo Paran':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(52,102,211,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION DE LOS BAJOS SIN SALIDA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(227,224,137,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION DE LOS VALLES TRANSVERSALES':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(205,55,128,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION DE MEDANOS COSTEROS SIN DRENAJE DEFINIDO ORIENTAL':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(217,102,31,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION DEL DELTA DEL PARANA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(131,236,93,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION MEDANOSA DE LA LLANURA ORIENTAL':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'REGION NOROESTE':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(153,43,213,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'RIOS Y ARROYOS MENORES AL N DEL RIO COLORADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(68,221,163,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'RIOS Y ARROYOS MENORES AL SUR DEL RIO COLORADO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(210,219,31,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'SISTEMA LABOULAYE':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(160,238,91,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'ZONA DE DRENAJE INDEFINIDO OCCIDENTAL PERIPAMPEANO':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(203,165,41,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'ZONA DE MARISMAS DE BAHIA BLANCA':
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(209,48,48,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_cuencas_2',
+                opacity: 1,
+                color: 'rgba(205,220,118,1.0)',
+                dashArray: '3.0,6.0',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_cuencas_2');
+        map.getPane('pane_cuencas_2').style.zIndex = 402;
+        map.getPane('pane_cuencas_2').style['mix-blend-mode'] = 'normal';
+        var layer_cuencas_2 = new L.geoJson(json_cuencas_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_cuencas_2',
+            layerName: 'layer_cuencas_2',
+            pane: 'pane_cuencas_2',
+            onEachFeature: pop_cuencas_2,
+            style: style_cuencas_2_0,
+        });
+        bounds_group.addLayer(layer_cuencas_2);
+        map.addLayer(layer_cuencas_2);
+        function pop_peligrosidad_el_gato_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cuenca'] !== null ? autolinker.link(String(feature.properties['cuenca']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['peligrosid'] !== null ? autolinker.link(String(feature.properties['peligrosid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_peligrosidad_el_gato_3_0() {
+            return {
+                pane: 'pane_peligrosidad_el_gato_3',
+                opacity: 1,
+                color: 'rgba(246,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 2.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_peligrosidad_el_gato_3');
+        map.getPane('pane_peligrosidad_el_gato_3').style.zIndex = 403;
+        map.getPane('pane_peligrosidad_el_gato_3').style['mix-blend-mode'] = 'normal';
+        var layer_peligrosidad_el_gato_3 = new L.geoJson(json_peligrosidad_el_gato_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_peligrosidad_el_gato_3',
+            layerName: 'layer_peligrosidad_el_gato_3',
+            pane: 'pane_peligrosidad_el_gato_3',
+            onEachFeature: pop_peligrosidad_el_gato_3,
+            style: style_peligrosidad_el_gato_3_0,
+        });
+        bounds_group.addLayer(layer_peligrosidad_el_gato_3);
+        map.addLayer(layer_peligrosidad_el_gato_3);
+        function pop_ARROYO_4(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(String(feature.properties['id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['arroyo el'] !== null ? autolinker.link(String(feature.properties['arroyo el']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ARROYO_4_0() {
+            return {
+                pane: 'pane_ARROYO_4',
+                opacity: 1,
+                color: 'rgba(27,178,200,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ARROYO_4');
+        map.getPane('pane_ARROYO_4').style.zIndex = 404;
+        map.getPane('pane_ARROYO_4').style['mix-blend-mode'] = 'normal';
+        var layer_ARROYO_4 = new L.geoJson(json_ARROYO_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ARROYO_4',
+            layerName: 'layer_ARROYO_4',
+            pane: 'pane_ARROYO_4',
+            onEachFeature: pop_ARROYO_4,
+            style: style_ARROYO_4_0,
+        });
+        bounds_group.addLayer(layer_ARROYO_4);
+        map.addLayer(layer_ARROYO_4);
+        function pop_MAPEOARROYOELGATOFIGURAENBIZAGI_5(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Empresa</th>\
+                        <td class="visible-with-data" id="Empresa">' + (feature.properties['Empresa'] !== null ? autolinker.link(String(feature.properties['Empresa']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">CUIT</th>\
+                        <td class="visible-with-data" id="CUIT">' + (feature.properties['CUIT'] !== null ? autolinker.link(String(feature.properties['CUIT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rubro</th>\
+                        <td class="visible-with-data" id="Rubro">' + (feature.properties['Rubro'] !== null ? autolinker.link(String(feature.properties['Rubro']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Domicilio</th>\
+                        <td class="visible-with-data" id="Domicilio">' + (feature.properties['Domicilio'] !== null ? autolinker.link(String(feature.properties['Domicilio']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Categoría</th>\
+                        <td class="visible-with-data" id="Categoría">' + (feature.properties['Categoría'] !== null ? autolinker.link(String(feature.properties['Categoría']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">C.A.A.</th>\
+                        <td class="visible-with-data" id="C.A.A.">' + (feature.properties['C.A.A.'] !== null ? autolinker.link(String(feature.properties['C.A.A.']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Efluentes gaseosos</th>\
+                        <td class="visible-with-data" id="Efluentes gaseosos">' + (feature.properties['Efluentes gaseosos'] !== null ? autolinker.link(String(feature.properties['Efluentes gaseosos']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Aparatos sometidos a presión</th>\
+                        <td class="visible-with-data" id="Aparatos sometidos a presión">' + (feature.properties['Aparatos sometidos a presión'] !== null ? autolinker.link(String(feature.properties['Aparatos sometidos a presión']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Residuos especiales</th>\
+                        <td class="visible-with-data" id="Residuos especiales">' + (feature.properties['Residuos especiales'] !== null ? autolinker.link(String(feature.properties['Residuos especiales']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Efluentes líquidos</th>\
+                        <td class="visible-with-data" id="Efluentes líquidos">' + (feature.properties['Efluentes líquidos'] !== null ? autolinker.link(String(feature.properties['Efluentes líquidos']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Observaciones / Imputaciones</th>\
+                        <td class="visible-with-data" id="Observaciones / Imputaciones">' + (feature.properties['Observaciones / Imputaciones'] !== null ? autolinker.link(String(feature.properties['Observaciones / Imputaciones']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">latitud</th>\
+                        <td class="visible-with-data" id="latitud">' + (feature.properties['latitud'] !== null ? autolinker.link(String(feature.properties['latitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">longitud</th>\
+                        <td class="visible-with-data" id="longitud">' + (feature.properties['longitud'] !== null ? autolinker.link(String(feature.properties['longitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">obsevaciones</th>\
+                        <td class="visible-with-data" id="obsevaciones">' + (feature.properties['obsevaciones'] !== null ? autolinker.link(String(feature.properties['obsevaciones']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MAPEOARROYOELGATOFIGURAENBIZAGI_5_0() {
+            return {
+                pane: 'pane_MAPEOARROYOELGATOFIGURAENBIZAGI_5',
+                radius: 4.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(13,0,254,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_MAPEOARROYOELGATOFIGURAENBIZAGI_5');
+        map.getPane('pane_MAPEOARROYOELGATOFIGURAENBIZAGI_5').style.zIndex = 405;
+        map.getPane('pane_MAPEOARROYOELGATOFIGURAENBIZAGI_5').style['mix-blend-mode'] = 'normal';
+        var layer_MAPEOARROYOELGATOFIGURAENBIZAGI_5 = new L.geoJson(json_MAPEOARROYOELGATOFIGURAENBIZAGI_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_MAPEOARROYOELGATOFIGURAENBIZAGI_5',
+            layerName: 'layer_MAPEOARROYOELGATOFIGURAENBIZAGI_5',
+            pane: 'pane_MAPEOARROYOELGATOFIGURAENBIZAGI_5',
+            onEachFeature: pop_MAPEOARROYOELGATOFIGURAENBIZAGI_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_MAPEOARROYOELGATOFIGURAENBIZAGI_5_0(feature));
+            },
+        });
+        var cluster_MAPEOARROYOELGATOFIGURAENBIZAGI_5 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_MAPEOARROYOELGATOFIGURAENBIZAGI_5.addLayer(layer_MAPEOARROYOELGATOFIGURAENBIZAGI_5);
+
+        bounds_group.addLayer(layer_MAPEOARROYOELGATOFIGURAENBIZAGI_5);
+        cluster_MAPEOARROYOELGATOFIGURAENBIZAGI_5.addTo(map);
+        function pop_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Empresa</th>\
+                        <td class="visible-with-data" id="Empresa">' + (feature.properties['Empresa'] !== null ? autolinker.link(String(feature.properties['Empresa']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">CUIT</th>\
+                        <td class="visible-with-data" id="CUIT">' + (feature.properties['CUIT'] !== null ? autolinker.link(String(feature.properties['CUIT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Rubro</th>\
+                        <td class="visible-with-data" id="Rubro">' + (feature.properties['Rubro'] !== null ? autolinker.link(String(feature.properties['Rubro']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Domicilio</th>\
+                        <td class="visible-with-data" id="Domicilio">' + (feature.properties['Domicilio'] !== null ? autolinker.link(String(feature.properties['Domicilio']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Categoría</th>\
+                        <td class="visible-with-data" id="Categoría">' + (feature.properties['Categoría'] !== null ? autolinker.link(String(feature.properties['Categoría']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">C.A.A.</th>\
+                        <td class="visible-with-data" id="C.A.A.">' + (feature.properties['C.A.A.'] !== null ? autolinker.link(String(feature.properties['C.A.A.']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Efluentes gaseosos</th>\
+                        <td class="visible-with-data" id="Efluentes gaseosos">' + (feature.properties['Efluentes gaseosos'] !== null ? autolinker.link(String(feature.properties['Efluentes gaseosos']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Aparatos sometidos a presión</th>\
+                        <td class="visible-with-data" id="Aparatos sometidos a presión">' + (feature.properties['Aparatos sometidos a presión'] !== null ? autolinker.link(String(feature.properties['Aparatos sometidos a presión']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Residuos especiales</th>\
+                        <td class="visible-with-data" id="Residuos especiales">' + (feature.properties['Residuos especiales'] !== null ? autolinker.link(String(feature.properties['Residuos especiales']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Efluentes líquidos</th>\
+                        <td class="visible-with-data" id="Efluentes líquidos">' + (feature.properties['Efluentes líquidos'] !== null ? autolinker.link(String(feature.properties['Efluentes líquidos']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Observaciones / Imputaciones</th>\
+                        <td class="visible-with-data" id="Observaciones / Imputaciones">' + (feature.properties['Observaciones / Imputaciones'] !== null ? autolinker.link(String(feature.properties['Observaciones / Imputaciones']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">latitud</th>\
+                        <td class="visible-with-data" id="latitud">' + (feature.properties['latitud'] !== null ? autolinker.link(String(feature.properties['latitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">longitud</th>\
+                        <td class="visible-with-data" id="longitud">' + (feature.properties['longitud'] !== null ? autolinker.link(String(feature.properties['longitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">obsevaciones</th>\
+                        <td class="visible-with-data" id="obsevaciones">' + (feature.properties['obsevaciones'] !== null ? autolinker.link(String(feature.properties['obsevaciones']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6_0() {
+            return {
+                pane: 'pane_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6',
+                radius: 4.4,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,255,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6');
+        map.getPane('pane_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6').style.zIndex = 406;
+        map.getPane('pane_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6').style['mix-blend-mode'] = 'normal';
+        var layer_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6 = new L.geoJson(json_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6',
+            layerName: 'layer_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6',
+            pane: 'pane_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6',
+            onEachFeature: pop_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6_0(feature));
+            },
+        });
+        var cluster_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6.addLayer(layer_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6);
+
+        bounds_group.addLayer(layer_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6);
+        cluster_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6.addTo(map);
+        function pop_MAPEOV1ubicacionCAT_7(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Nombre</th>\
+                        <td class="visible-with-data" id="Nombre">' + (feature.properties['Nombre'] !== null ? autolinker.link(String(feature.properties['Nombre']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Dirección</th>\
+                        <td class="visible-with-data" id="Dirección">' + (feature.properties['Dirección'] !== null ? autolinker.link(String(feature.properties['Dirección']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Localidad'] !== null ? autolinker.link(String(feature.properties['Localidad']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitud</th>\
+                        <td class="visible-with-data" id="Latitud">' + (feature.properties['Latitud'] !== null ? autolinker.link(String(feature.properties['Latitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitud</th>\
+                        <td class="visible-with-data" id="Longitud">' + (feature.properties['Longitud'] !== null ? autolinker.link(String(feature.properties['Longitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Acto administrativo</th>\
+                        <td class="visible-with-data" id="Acto administrativo">' + (feature.properties['Acto administrativo'] !== null ? autolinker.link(String(feature.properties['Acto administrativo']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">seccion electoral</th>\
+                        <td class="visible-with-data" id="seccion electoral">' + (feature.properties['seccion electoral'] !== null ? autolinker.link(String(feature.properties['seccion electoral']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">intendente</th>\
+                        <td class="visible-with-data" id="intendente">' + (feature.properties['intendente'] !== null ? autolinker.link(String(feature.properties['intendente']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">fuerza politica</th>\
+                        <td class="visible-with-data" id="fuerza politica">' + (feature.properties['fuerza politica'] !== null ? autolinker.link(String(feature.properties['fuerza politica']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MAPEOV1ubicacionCAT_7_0(feature) {
+            switch(String(feature.properties['Nombre'])) {
+                case 'CAT 9 de Julio':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT America II':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Bahía Blanca':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Balcarce':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Benito Juarez':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Bolivar':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Chacabuco':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Chascomús':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Coronel Suarez':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Daireaux':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Darragueira':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Junin':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Laprida':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Las Flores':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Lincoln':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Mar del Plata':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Necochea':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Olavarria':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Pedro Luro':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Pehuajo':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Pellegrini ':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Pergamino':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Pigüe ':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Ramallo':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Rojas':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Saladillo':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Salliquelo':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Suipacha':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Tandil I':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Trenque Lauquen':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'CAT Tres Arroyos':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                case 'Cat Villegas':
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_MAPEOV1ubicacionCAT_7',
+        rotationAngle: 0.0,
+        rotationOrigin: 'center center',
+        icon: L.icon({
+            iconUrl: 'markers/MAPEOV1ubicacionCAT_7.svg',
+            iconSize: [11.399999999999999, 11.399999999999999]
+        }),
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_MAPEOV1ubicacionCAT_7');
+        map.getPane('pane_MAPEOV1ubicacionCAT_7').style.zIndex = 407;
+        map.getPane('pane_MAPEOV1ubicacionCAT_7').style['mix-blend-mode'] = 'normal';
+        var layer_MAPEOV1ubicacionCAT_7 = new L.geoJson(json_MAPEOV1ubicacionCAT_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_MAPEOV1ubicacionCAT_7',
+            layerName: 'layer_MAPEOV1ubicacionCAT_7',
+            pane: 'pane_MAPEOV1ubicacionCAT_7',
+            onEachFeature: pop_MAPEOV1ubicacionCAT_7,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.marker(latlng, style_MAPEOV1ubicacionCAT_7_0(feature));
+            },
+        });
+        var cluster_MAPEOV1ubicacionCAT_7 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_MAPEOV1ubicacionCAT_7.addLayer(layer_MAPEOV1ubicacionCAT_7);
+
+        bounds_group.addLayer(layer_MAPEOV1ubicacionCAT_7);
+        cluster_MAPEOV1ubicacionCAT_7.addTo(map);
+        function pop_MAPEOV1PR_8(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">PR</th>\
+                        <td class="visible-with-data" id="PR">' + (feature.properties['PR'] !== null ? autolinker.link(String(feature.properties['PR']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Domicilio</th>\
+                        <td class="visible-with-data" id="Domicilio">' + (feature.properties['Domicilio'] !== null ? autolinker.link(String(feature.properties['Domicilio']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitud</th>\
+                        <td class="visible-with-data" id="Latitud">' + (feature.properties['Latitud'] !== null ? autolinker.link(String(feature.properties['Latitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitud</th>\
+                        <td class="visible-with-data" id="Longitud">' + (feature.properties['Longitud'] !== null ? autolinker.link(String(feature.properties['Longitud']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SECCION</th>\
+                        <td class="visible-with-data" id="SECCION">' + (feature.properties['SECCION'] !== null ? autolinker.link(String(feature.properties['SECCION']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">MUNICIPIO</th>\
+                        <td class="visible-with-data" id="MUNICIPIO">' + (feature.properties['MUNICIPIO'] !== null ? autolinker.link(String(feature.properties['MUNICIPIO']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">INTENDENTE</th>\
+                        <td class="visible-with-data" id="INTENDENTE">' + (feature.properties['INTENDENTE'] !== null ? autolinker.link(String(feature.properties['INTENDENTE']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">FUERZA POLITICA</th>\
+                        <td class="visible-with-data" id="FUERZA POLITICA">' + (feature.properties['FUERZA POLITICA'] !== null ? autolinker.link(String(feature.properties['FUERZA POLITICA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MAPEOV1PR_8_0(feature) {
+            switch(String(feature.properties['PR'])) {
+                case 'Alberti':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Azul':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'General Belgrano':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Hipolito Hirigoyen':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'La Plata ':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Lobería':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Lobos':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Rauch':
+                    return {
+                pane: 'pane_MAPEOV1PR_8',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(1,13,11,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_MAPEOV1PR_8');
+        map.getPane('pane_MAPEOV1PR_8').style.zIndex = 408;
+        map.getPane('pane_MAPEOV1PR_8').style['mix-blend-mode'] = 'normal';
+        var layer_MAPEOV1PR_8 = new L.geoJson(json_MAPEOV1PR_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_MAPEOV1PR_8',
+            layerName: 'layer_MAPEOV1PR_8',
+            pane: 'pane_MAPEOV1PR_8',
+            onEachFeature: pop_MAPEOV1PR_8,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_MAPEOV1PR_8_0(feature));
+            },
+        });
+        var cluster_MAPEOV1PR_8 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_MAPEOV1PR_8.addLayer(layer_MAPEOV1PR_8);
+
+        bounds_group.addLayer(layer_MAPEOV1PR_8);
+        cluster_MAPEOV1PR_8.addTo(map);
+        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim OSM"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Create the new button element
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Insert the button at the beginning of the search control
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+        var overlaysTree = [
+        {label: '<b>OPERADORES</b>',  selectAllCheckbox: true, children: [
+            {label: 'MAPEO.V1 - PR<br /><table><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_Alberti0.png" /></td><td>Alberti</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_Azul1.png" /></td><td>Azul</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_GeneralBelgrano2.png" /></td><td>General Belgrano</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_HipolitoHirigoyen3.png" /></td><td>Hipolito Hirigoyen</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_LaPlata4.png" /></td><td>La Plata </td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_Lobería5.png" /></td><td>Lobería</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_Lobos6.png" /></td><td>Lobos</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1PR_8_Rauch7.png" /></td><td>Rauch</td></tr></table>', layer: cluster_MAPEOV1PR_8},
+            {label: 'MAPEO.V1 - ubicacion CAT<br /><table><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CAT9deJulio0.png" /></td><td>CAT 9 de Julio</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATAmericaII1.png" /></td><td>CAT America II</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATBahíaBlanca2.png" /></td><td>CAT Bahía Blanca</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATBalcarce3.png" /></td><td>CAT Balcarce</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATBenitoJuarez4.png" /></td><td>CAT Benito Juarez</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATBolivar5.png" /></td><td>CAT Bolivar</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATChacabuco6.png" /></td><td>CAT Chacabuco</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATChascomús7.png" /></td><td>CAT Chascomús</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATCoronelSuarez8.png" /></td><td>CAT Coronel Suarez</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATDaireaux9.png" /></td><td>CAT Daireaux</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATDarragueira10.png" /></td><td>CAT Darragueira</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATJunin11.png" /></td><td>CAT Junin</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATLaprida12.png" /></td><td>CAT Laprida</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATLasFlores13.png" /></td><td>CAT Las Flores</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATLincoln14.png" /></td><td>CAT Lincoln</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATMardelPlata15.png" /></td><td>CAT Mar del Plata</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATNecochea16.png" /></td><td>CAT Necochea</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATOlavarria17.png" /></td><td>CAT Olavarria</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATPedroLuro18.png" /></td><td>CAT Pedro Luro</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATPehuajo19.png" /></td><td>CAT Pehuajo</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATPellegrini20.png" /></td><td>CAT Pellegrini </td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATPergamino21.png" /></td><td>CAT Pergamino</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATPigüe22.png" /></td><td>CAT Pigüe </td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATRamallo23.png" /></td><td>CAT Ramallo</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATRojas24.png" /></td><td>CAT Rojas</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATSaladillo25.png" /></td><td>CAT Saladillo</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATSalliquelo26.png" /></td><td>CAT Salliquelo</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATSuipacha27.png" /></td><td>CAT Suipacha</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATTandilI28.png" /></td><td>CAT Tandil I</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATTrenqueLauquen29.png" /></td><td>CAT Trenque Lauquen</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CATTresArroyos30.png" /></td><td>CAT Tres Arroyos</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_CatVillegas31.png" /></td><td>Cat Villegas</td></tr><tr><td style="text-align: center;"><img src="legend/MAPEOV1ubicacionCAT_7_32.png" /></td><td></td></tr></table>', layer: cluster_MAPEOV1ubicacionCAT_7},]},
+            {label: '<img src="legend/MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6.png" /> MAPEO ARROYO EL GATO - FIGURA EN LEGAJO UNICO', layer: cluster_MAPEOARROYOELGATOFIGURAENLEGAJOUNICO_6},
+            {label: '<img src="legend/MAPEOARROYOELGATOFIGURAENBIZAGI_5.png" /> MAPEO ARROYO EL GATO - FIGURA EN BIZAGI', layer: cluster_MAPEOARROYOELGATOFIGURAENBIZAGI_5},
+            {label: '<img src="legend/ARROYO_4.png" /> ARROYO', layer: layer_ARROYO_4},
+            {label: '<img src="legend/peligrosidad_el_gato_3.png" /> peligrosidad_el_gato', layer: layer_peligrosidad_el_gato_3},
+            {label: 'cuencas<br /><table><tr><td style="text-align: center;"><img src="legend/cuencas_2_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_AportealSalitralGrande1.png" /></td><td>Aporte al Salitral Grande</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADEAPORTEDIRECTOALOCEANOATLANTICOSUR2.png" /></td><td>CUENCA DE APORTE DIRECTO AL OCEANO ATLANTICO SUR</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADEAPORTEDIRECTOALRIODELAPLATA3.png" /></td><td>CUENCA DE APORTE DIRECTO AL RIO DE LA PLATA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADEAPORTEDIRECTOALRIOPARANA4.png" /></td><td>CUENCA DE APORTE DIRECTO AL RIO PARANA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADEARROYOLASFLORES5.png" /></td><td>CUENCA DE ARROYO LAS FLORES</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADEDESAGUEDIRECTOALRIODELAPLATAALNDELRIOSAMBOROMBON6.png" /></td><td>CUENCA DE DESAGUE DIRECTO AL RIO DE LA PLATA AL N DEL RIO SAMBOROMBON</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelalagunaLaPicasa7.png" /></td><td>Cuenca de la laguna La Picasa</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELALAGUNAMARCHIQUITA8.png" /></td><td>CUENCA DE LA LAGUNA MAR CHIQUITA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELOSARROYOSELMALACARACHOCORIYOTROS9.png" /></td><td>CUENCA DE LOS ARROYOS EL MALACARA, CHOCORI Y OTROS</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELOSARROYOSELPERDIDOELZANJONYLOSGAUCHOS10.png" /></td><td>CUENCA DE LOS ARROYOS EL PERDIDO, EL ZANJON Y LOS GAUCHOS</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELOSARROYOSESPINILLOYDELOSCUEROS11.png" /></td><td>CUENCA DE LOS ARROYOS ESPINILLO Y DE LOS CUEROS</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELOSARROYOSLASCORTADERASCRISTIANOMUERTOYOTROS12.png" /></td><td>CUENCA DE LOS ARROYOS LAS CORTADERAS, CRISTIANO MUERTO Y OTROS</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOAZUL13.png" /></td><td>CUENCA DEL ARROYO AZUL</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOCHASICO14.png" /></td><td>CUENCA DEL ARROYO CHASICO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOCOCHICO15.png" /></td><td>CUENCA DEL ARROYO COCHICO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYODELACRUZ16.png" /></td><td>CUENCA DEL ARROYO DE LA CRUZ</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelArroyodelMedio17.png" /></td><td>Cuenca del Arroyo del Medio</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYODELMEDIO18.png" /></td><td>CUENCA DEL ARROYO DEL MEDIO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYODELTALA19.png" /></td><td>CUENCA DEL ARROYO DEL TALA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOGUAMINI20.png" /></td><td>CUENCA DEL ARROYO GUAMINI</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOLANGUEYU21.png" /></td><td>CUENCA DEL ARROYO LANGUEYU</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYONAPOSTACHICO22.png" /></td><td>CUENCA DEL ARROYO NAPOSTA CHICO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOPERGAMINO23.png" /></td><td>CUENCA DEL ARROYO PERGAMINO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOPIGgE24.png" /></td><td>CUENCA DEL ARROYO PIGgE</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYORAMALLO25.png" /></td><td>CUENCA DEL ARROYO RAMALLO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOSAUCECHICO26.png" /></td><td>CUENCA DEL ARROYO SAUCE CHICO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOSAUCECORTO27.png" /></td><td>CUENCA DEL ARROYO SAUCE CORTO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOSAUCEGRANDE28.png" /></td><td>CUENCA DEL ARROYO SAUCE GRANDE</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOTANDILEUFUCHELFORO29.png" /></td><td>CUENCA DEL ARROYO TANDILEUFU-CHELFORO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOTRESARROYOSOCLAROMECO30.png" /></td><td>CUENCA DEL ARROYO TRES ARROYOS O CLAROMECO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOVALLIMANCA31.png" /></td><td>CUENCA DEL ARROYO VALLIMANCA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELARROYOVENADO32.png" /></td><td>CUENCA DEL ARROYO VENADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOARECO33.png" /></td><td>CUENCA DEL RIO ARECO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOARRECIFES34.png" /></td><td>CUENCA DEL RIO ARRECIFES</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOCOLORADO35.png" /></td><td>CUENCA DEL RIO COLORADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIODELAMATANZA36.png" /></td><td>CUENCA DEL RIO DE LA MATANZA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIODELARECONQUISTA37.png" /></td><td>CUENCA DEL RIO DE LA RECONQUISTA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOLUJAN38.png" /></td><td>CUENCA DEL RIO LUJAN</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIONEGRO39.png" /></td><td>CUENCA DEL RIO NEGRO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOQUEQUENGRANDE40.png" /></td><td>CUENCA DEL RIO QUEQUEN GRANDE</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOQUEQUENSALADO41.png" /></td><td>CUENCA DEL RIO QUEQUEN SALADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOSALTO42.png" /></td><td>CUENCA DEL RIO SALTO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCADELRIOSAMBOROMBON43.png" /></td><td>CUENCA DEL RIO SAMBOROMBON</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelrnoArrecifes44.png" /></td><td>Cuenca del rno Arrecifes</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelrnoNegro45.png" /></td><td>Cuenca del rno Negro</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelrnoSaladobrazonorte46.png" /></td><td>Cuenca del rno Salado brazo norte</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencadelrnoSaladobrazosur47.png" /></td><td>Cuenca del rno Salado brazo sur</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CUENCAPROPIADELRIOSALADO48.png" /></td><td>CUENCA PROPIA DEL RIO SALADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_CuencapropiadelrRoParan49.png" /></td><td>Cuenca propia del rRo Paran</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONDELOSBAJOSSINSALIDA50.png" /></td><td>REGION DE LOS BAJOS SIN SALIDA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONDELOSVALLESTRANSVERSALES51.png" /></td><td>REGION DE LOS VALLES TRANSVERSALES</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONDEMEDANOSCOSTEROSSINDRENAJEDEFINIDOORIENTAL52.png" /></td><td>REGION DE MEDANOS COSTEROS SIN DRENAJE DEFINIDO ORIENTAL</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONDELDELTADELPARANA53.png" /></td><td>REGION DEL DELTA DEL PARANA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONMEDANOSADELALLANURAORIENTAL54.png" /></td><td>REGION MEDANOSA DE LA LLANURA ORIENTAL</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_REGIONNOROESTE55.png" /></td><td>REGION NOROESTE</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_RIOSYARROYOSMENORESALNDELRIOCOLORADO56.png" /></td><td>RIOS Y ARROYOS MENORES AL N DEL RIO COLORADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_RIOSYARROYOSMENORESALSURDELRIOCOLORADO57.png" /></td><td>RIOS Y ARROYOS MENORES AL SUR DEL RIO COLORADO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_SISTEMALABOULAYE58.png" /></td><td>SISTEMA LABOULAYE</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_ZONADEDRENAJEINDEFINIDOOCCIDENTALPERIPAMPEANO59.png" /></td><td>ZONA DE DRENAJE INDEFINIDO OCCIDENTAL PERIPAMPEANO</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_ZONADEMARISMASDEBAHIABLANCA60.png" /></td><td>ZONA DE MARISMAS DE BAHIA BLANCA</td></tr><tr><td style="text-align: center;"><img src="legend/cuencas_2_61.png" /></td><td></td></tr></table>', layer: layer_cuencas_2},
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_1, radioGroup: 'bm' },
+            {label: "ESRI Satellite", layer: layer_ESRISatellite_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        var i = 0;
+        layer_cuencas_2.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['cuenca'] !== null?String('<div style="color: #323232; font-size: 10pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['cuenca']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_cuencas_2'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        resetLabels([layer_cuencas_2]);
+        map.on("zoomend", function(){
+            resetLabels([layer_cuencas_2]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_cuencas_2]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_cuencas_2]);
+        });
+        </script>        
+    </body>
+</html>
